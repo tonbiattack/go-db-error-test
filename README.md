@@ -17,6 +17,18 @@ DB エラーが起きても継続できるかどうかのテストを行うた�
 export TEST_DB_DSN='user:pass@tcp(127.0.0.1:3306)/test_db?parseTime=true&loc=UTC'
 ```
 
+### Docker で MySQL を起動する場合
+
+```
+docker compose up -d
+```
+
+起動後、以下の DSN を使えます。
+
+```
+export TEST_DB_DSN='test:test@tcp(127.0.0.1:3306)/test_db?parseTime=true&loc=UTC'
+```
+
 ## テスト実行
 
 ```
