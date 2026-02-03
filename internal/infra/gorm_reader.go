@@ -19,7 +19,7 @@ func NewGormReader(db *gorm.DB) *GormReader {
 type IndividualModel struct {
 	ID    int64  `gorm:"primaryKey;autoIncrement"`
 	Name  string `gorm:"not null"`
-	Email string `gorm:"uniqueIndex;size:255"`
+	Email string `gorm:"uniqueIndex;size:191"`
 }
 
 type CorporateModel struct {
