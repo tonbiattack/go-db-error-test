@@ -5,6 +5,8 @@ import (
 	"os"
 	"testing"
 
+	"go-db-error-test/internal/usecase"
+
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -129,5 +131,40 @@ func TestGormReader_UniqueConstraintError(t *testing.T) {
 	err := repo.CreateIndividual(ctx, "個人B", "dup@example.com")
 	if err == nil {
 		t.Fatalf("expected unique constraint error but got nil")
+	}
+}
+
+func TestBatchService_個人テーブルが無くても法人は成功する(t *testing.T) {
+	// 実 DB で個人テーブルの欠損を再現し、法人が継続できることを確認する。
+	db := openTestDB(t)
+	migrateTables(t, db)
+	truncateTables(t, db)
+
+	repo := NewGormReader(db)
+	ctx := context.Background()
+
+	// 法人は事前に投入しておく。
+	if err := repo.CreateCorporate(ctx, "法人X"); err != nil {
+		t.Fatalf("insert corporate: %v", err)
+	}
+
+	// 個人テーブルを削除して SELECT 失敗を再現する。
+	if err := db.Migrator().DropTable(&IndividualModel{}); err != nil {
+		t.Fatalf("failed to drop individuals: %v", err)
+	}
+
+	// バッチ実行。
+	svc := usecase.NewBatchService(repo)
+	res, err := svc.Run(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// 個人は0件、法人は1件であること。
+	if len(res.Individuals) != 0 {
+		t.Fatalf("expected 0 individuals but got %d", len(res.Individuals))
+	}
+	if len(res.Corporates) != 1 {
+		t.Fatalf("expected 1 corporate but got %d", len(res.Corporates))
 	}
 }
