@@ -5,7 +5,7 @@ DB エラーが起きても継続できるかどうかのテストを行うた�
 ## 構成
 
 - `internal/usecase`: バッチサービスとユニットテスト（フェイク Reader）
-- `internal/infra`: GORM 実装 + 実 DB テスト（モックが使えないケース）
+- `internal/infra`: GORM 実装 + 実 DB テスト（SELECT 失敗やユニーク制約違反の再現例）
 
 ## 事前準備
 

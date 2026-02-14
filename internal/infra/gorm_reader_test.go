@@ -84,6 +84,30 @@ func TestGormReader_FetchIndividualsAndCorporates(t *testing.T) {
 	}
 }
 
+func TestGormReader_個人テーブルが無いとSELECTが失敗する(t *testing.T) {
+	// モックが使えないケース: 実 DB で SELECT の失敗を再現する
+	// DB接続・準備。
+	db := openTestDB(t)
+	migrateTables(t, db)
+	truncateTables(t, db)
+
+	// 個人テーブルを削除して SELECT 失敗を再現する。
+	if err := db.Migrator().DropTable(&IndividualModel{}); err != nil {
+		t.Fatalf("failed to drop individuals: %v", err)
+	}
+
+	// リポジトリを構築。
+	repo := NewGormReader(db)
+	// リクエスト用コンテキスト。
+	ctx := context.Background()
+
+	// SELECT が失敗すること。
+	_, err := repo.FetchIndividuals(ctx)
+	if err == nil {
+		t.Fatalf("expected select error but got nil")
+	}
+}
+
 func TestGormReader_UniqueConstraintError(t *testing.T) {
 	// モックが使えないケース: 実 DB でユニーク制約エラーを再現する
 	// DB接続・準備。
