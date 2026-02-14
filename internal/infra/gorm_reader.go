@@ -9,8 +9,10 @@ import (
 )
 
 // GormReader はGORMでDBから読み書きする実装。
+// usecase.Reader の実装として、DBモデルとドメインモデルの変換責務を持つ。
 type GormReader struct {
 	// db はGORMのDB接続。
+	// WithContext でリクエスト単位のキャンセル/タイムアウトを伝播させる。
 	db *gorm.DB
 }
 
@@ -41,11 +43,13 @@ type CorporateModel struct {
 func (r *GormReader) FetchIndividuals(ctx context.Context) ([]domain.Individual, error) {
 	// DB上のモデルを受け取るためのスライス。
 	var models []IndividualModel
+	// Order("id") によってテスト/呼び出し側で結果順が安定する。
 	if err := r.db.WithContext(ctx).Order("id").Find(&models).Error; err != nil {
 		return nil, err
 	}
 
 	// ドメイン型へ変換する。
+	// DBスキーマ変更の影響を usecase/domain へ直接漏らさないために明示変換する。
 	individuals := make([]domain.Individual, 0, len(models))
 	for _, m := range models {
 		individuals = append(individuals, domain.Individual{ID: m.ID, Name: m.Name})
@@ -57,11 +61,13 @@ func (r *GormReader) FetchIndividuals(ctx context.Context) ([]domain.Individual,
 func (r *GormReader) FetchCorporates(ctx context.Context) ([]domain.Corporate, error) {
 	// DB上のモデルを受け取るためのスライス。
 	var models []CorporateModel
+	// Order("id") によってテスト/呼び出し側で結果順が安定する。
 	if err := r.db.WithContext(ctx).Order("id").Find(&models).Error; err != nil {
 		return nil, err
 	}
 
 	// ドメイン型へ変換する。
+	// DBスキーマ変更の影響を usecase/domain へ直接漏らさないために明示変換する。
 	corporates := make([]domain.Corporate, 0, len(models))
 	for _, m := range models {
 		corporates = append(corporates, domain.Corporate{ID: m.ID, Name: m.Name})
@@ -73,7 +79,7 @@ func (r *GormReader) FetchCorporates(ctx context.Context) ([]domain.Corporate, e
 func (r *GormReader) CreateIndividual(ctx context.Context, name string, email string) error {
 	// 作成するモデルを組み立てる。
 	model := IndividualModel{Name: name, Email: email}
-	// DBへINSERTする。
+	// DBへINSERTする。制約違反（例: email の unique）はそのまま上位へ返す。
 	return r.db.WithContext(ctx).Create(&model).Error
 }
 
@@ -81,6 +87,6 @@ func (r *GormReader) CreateIndividual(ctx context.Context, name string, email st
 func (r *GormReader) CreateCorporate(ctx context.Context, name string) error {
 	// 作成するモデルを組み立てる。
 	model := CorporateModel{Name: name}
-	// DBへINSERTする。
+	// DBへINSERTする。失敗時は原文エラーをそのまま返す。
 	return r.db.WithContext(ctx).Create(&model).Error
 }

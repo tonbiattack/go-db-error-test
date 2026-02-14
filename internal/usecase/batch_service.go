@@ -8,9 +8,12 @@ import (
 	"go-db-error-test/internal/domain"
 )
 
+// BatchService は「個人」「法人」を別系統で取得することで、
+// 片方の障害がもう片方へ波及しないようにするためのユースケース。
 // BatchService は個人・法人取得をまとめて実行するユースケース。
 type BatchService struct {
 	// reader はデータ取得のための依存。
+	// 実装は infra 層（GORM 等）で差し替える。
 	reader Reader
 }
 
@@ -28,6 +31,8 @@ type Result struct {
 }
 
 // Run は個人・法人の取得を試行し、片方が失敗しても継続する。
+// 仕様として「両方とも取得結果が空」の場合は失敗扱いにする。
+// そのため、空配列が業務的に正常となる場合は判定条件の見直しが必要。
 func (s *BatchService) Run(ctx context.Context) (*Result, error) {
 	var (
 		// individuals は個人取得の結果。
