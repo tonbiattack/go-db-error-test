@@ -46,6 +46,7 @@ func truncateTables(t *testing.T, db *gorm.DB) {
 }
 
 func TestGormReader_FetchIndividualsAndCorporates(t *testing.T) {
+	t.Run("個人と法人の取得が成功する", func(t *testing.T) {
 	// DB接続・準備。
 	db := openTestDB(t)
 	migrateTables(t, db)
@@ -84,9 +85,11 @@ func TestGormReader_FetchIndividualsAndCorporates(t *testing.T) {
 	if len(corporates) != 1 {
 		t.Fatalf("expected 1 corporate but got %d", len(corporates))
 	}
+	})
 }
 
-func TestGormReader_個人テーブルが無いとSELECTが失敗する(t *testing.T) {
+func TestGormReader_SelectFailsWhenIndividualsTableMissing(t *testing.T) {
+	t.Run("個人テーブルが無いとSELECTが失敗する", func(t *testing.T) {
 	// モックが使えないケース: 実 DB で SELECT の失敗を再現する
 	// DB接続・準備。
 	db := openTestDB(t)
@@ -108,9 +111,11 @@ func TestGormReader_個人テーブルが無いとSELECTが失敗する(t *testi
 	if err == nil {
 		t.Fatalf("expected select error but got nil")
 	}
+	})
 }
 
 func TestGormReader_UniqueConstraintError(t *testing.T) {
+	t.Run("ユニーク制約違反が発生する", func(t *testing.T) {
 	// モックが使えないケース: 実 DB でユニーク制約エラーを再現する
 	// DB接続・準備。
 	db := openTestDB(t)
@@ -132,9 +137,11 @@ func TestGormReader_UniqueConstraintError(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected unique constraint error but got nil")
 	}
+	})
 }
 
-func TestBatchService_個人テーブルが無くても法人は成功する(t *testing.T) {
+func TestBatchService_CorporatesSucceedWhenIndividualsTableMissing(t *testing.T) {
+	t.Run("個人テーブルが無くても法人は成功する", func(t *testing.T) {
 	// 実 DB で個人テーブルの欠損を再現し、法人が継続できることを確認する。
 	db := openTestDB(t)
 	migrateTables(t, db)
@@ -167,4 +174,5 @@ func TestBatchService_個人テーブルが無くても法人は成功する(t *
 	if len(res.Corporates) != 1 {
 		t.Fatalf("expected 1 corporate but got %d", len(res.Corporates))
 	}
+	})
 }
