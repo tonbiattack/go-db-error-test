@@ -17,7 +17,16 @@ func openTestDB(t *testing.T) *gorm.DB {
 		// MySQLに接続する。
 		db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 		if err != nil {
-			t.Fatalf("failed to connect test db: %v", err)
+			t.Skipf("test db is not reachable: %v", err)
+		}
+
+		// 実際に接続可能かを確認する。
+		sqlDB, err := db.DB()
+		if err != nil {
+			t.Skipf("test db handle is not available: %v", err)
+		}
+		if err := sqlDB.Ping(); err != nil {
+			t.Skipf("test db ping failed: %v", err)
 		}
 		return db
 	}
