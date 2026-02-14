@@ -31,20 +31,24 @@ type Result struct {
 }
 
 // Run は個人・法人の取得を試行し、片方が失敗しても継続する。
-// 仕様として「両方とも取得結果が空」の場合は失敗扱いにする。
-// そのため、空配列が業務的に正常となる場合は判定条件の見直しが必要。
+// 「データ0件」は正常系として扱い、取得処理そのものが両方失敗した場合のみ失敗にする。
 func (s *BatchService) Run(ctx context.Context) (*Result, error) {
 	var (
 		// individuals は個人取得の結果。
 		individuals []domain.Individual
 		// corporates は法人取得の結果。
 		corporates  []domain.Corporate
+		// indFailed/corpFailed は取得処理そのものが失敗したかを保持する。
+		// データ0件は正常系なので、件数ではなくエラー有無で最終判定する。
+		indFailed   bool
+		corpFailed  bool
 	)
 
 	// 個人取得に失敗しても処理継続する。
 	ind, err := s.reader.FetchIndividuals(ctx)
 	if err != nil {
 		log.Printf("[WARN] 個人データの取得に失敗しました: %v", err)
+		indFailed = true
 	} else {
 		individuals = ind
 	}
@@ -53,12 +57,13 @@ func (s *BatchService) Run(ctx context.Context) (*Result, error) {
 	corp, err := s.reader.FetchCorporates(ctx)
 	if err != nil {
 		log.Printf("[WARN] 法人データの取得に失敗しました: %v", err)
+		corpFailed = true
 	} else {
 		corporates = corp
 	}
 
-	// 両方失敗（どちらも空）ならバッチ失敗として返す。
-	if len(individuals) == 0 && len(corporates) == 0 {
+	// 両方の取得処理が失敗した場合のみ、バッチ失敗として返す。
+	if indFailed && corpFailed {
 		return nil, fmt.Errorf("個人・法人ともに取得に失敗したため終了")
 	}
 

@@ -124,3 +124,20 @@ func TestBatchService_AllFailReturnsError(t *testing.T) {
 		}
 	})
 }
+
+func TestBatchService_BothSuccessWithEmptyDataReturnsSuccess(t *testing.T) {
+	t.Run("個人法人とも成功かつ0件でも正常終了", func(t *testing.T) {
+		// 両方の取得処理は成功し、結果のみ空のケース。
+		reader := &fakeReader{}
+		svc := NewBatchService(reader)
+
+		// 実行してエラーにならないこと。
+		res, err := svc.Run(context.Background())
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(res.Individuals) != 0 || len(res.Corporates) != 0 {
+			t.Fatalf("unexpected result: %#v", res)
+		}
+	})
+}
